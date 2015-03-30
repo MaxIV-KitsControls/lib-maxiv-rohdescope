@@ -28,6 +28,11 @@ The library has been tested with the following hardwares:
 | RTM    | 2054      | 05.502   |
 | RTO    | 1004      | 2.15.2.0 |
 
+Installation
+------------
+
+    $ python setup.py install
+
 Contact
 -------
 
