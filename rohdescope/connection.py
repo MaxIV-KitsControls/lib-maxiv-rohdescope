@@ -30,7 +30,7 @@ class ScopeConnection(object):
         self.tick = kwargs.pop("tick", self.default_tick)
         self.host = host
         self.kwargs = kwargs
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.firmware_version = None
         self.scope = None
 
@@ -233,12 +233,11 @@ class ScopeConnection(object):
         along with the values as a string.
         """
         if channels and single:
-            self.write("RUNS")
-            self.wait(busy)
+            self.wait_single(busy)
         return time(), self.get_waveform_string(channels)
 
-    def wait(self, busy=True):
-        """Wait for the last commands to complete."""
+    def wait_single(self, busy=True):
+        """Run a single acquisition and wait for it to complete."""
         # Use hardware wait
         if not busy:
             return self.ask("RUNS;*OPC?")
@@ -249,12 +248,14 @@ class ScopeConnection(object):
         # Prepare timeout
         timeout = self.kwargs['instrument_timeout'] / 1000.0
         timeout += time()
-        self.write("*OPC")
-        # Wait for the commands to complete
-        while not finished():
-            # Handle timeout
-            if time() > timeout:
-                raise Vxi11Exception(15, "wait")
+        # Lock the connection
+        with self.lock:
+            self.write("RUNS;*OPC")
+            # Wait for the commands to complete
+            while not finished():
+                # Handle timeout
+                if time() > timeout:
+                    raise Vxi11Exception(15, "wait")
 
     # General accessor methods
 
@@ -604,7 +605,8 @@ class RTOConnection(ScopeConnection):
     def get_channel_enabled(self, channel):
         """Update the channel export at every read of the channel state."""
         result = super(RTOConnection, self).get_channel_enabled(channel)
-        self.set_channel_export(channel, result)
+        if result:
+            self.set_channel_export(channel, result)
         return result
 
     def set_fast_readout(self, enabled):
