@@ -240,7 +240,7 @@ class ScopeConnection(object):
         """Run a single acquisition and wait for it to complete."""
         # Use hardware wait
         if not busy:
-            return self.ask("RUNS;*OPC?")
+            return self.ask("SING;*OPC?")
         # Prepare test condition
         @tick_control(self.tick)
         def finished():
@@ -250,7 +250,7 @@ class ScopeConnection(object):
         timeout += time()
         # Lock the connection
         with self.lock:
-            self.write("RUNS;*OPC")
+            self.write("SING;*OPC")
             # Wait for the commands to complete
             while not finished():
                 # Handle timeout
