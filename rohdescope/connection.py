@@ -149,6 +149,7 @@ class ScopeConnection(object):
     def clear_buffer(self):
         """Clear the error buffer."""
         cmd = '*CLS'
+        self.scope.clear()
         self.write(cmd)
 
     # Acquisition
@@ -228,12 +229,12 @@ class ScopeConnection(object):
         data_dict = self.get_waveform_data(channels)
         return self.convert_waveforms(data_dict, scales, positions)
 
-    def stamp_acquisition(self, channels, single=True, busy=True):
+    def stamp_acquisition(self, channels, single=True):
         """Return the time stamp of an acquisition
         along with the values as a string.
         """
         if channels and single:
-            self.wait_single(busy)
+            self.wait_single()
         return time(), self.get_waveform_string(channels)
 
     def wait_single(self):
