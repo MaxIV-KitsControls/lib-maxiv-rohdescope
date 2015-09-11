@@ -6,7 +6,7 @@ import vxi11
 import threading
 from timeit import default_timer as time
 from vxi11.vxi11 import Vxi11Exception
-from rohdescope.common import support_channel_dict, tick_control
+from rohdescope.common import support_channel_dict
 
 
 # Scope connection class
@@ -236,26 +236,14 @@ class ScopeConnection(object):
             self.wait_single(busy)
         return time(), self.get_waveform_string(channels)
 
-    def wait_single(self, busy=True):
+    def wait_single(self):
         """Run a single acquisition and wait for it to complete."""
-        # Use hardware wait
-        if not busy:
-            return self.ask("SING;*OPC?")
-        # Prepare test condition
-        @tick_control(self.tick)
-        def finished():
-            return int(self.ask("*ESR?")) % 2
-        # Prepare timeout
-        timeout = self.kwargs['instrument_timeout'] / 1000.0
-        timeout += time()
-        # Lock the connection
-        with self.lock:
-            self.write("SING;*OPC")
-            # Wait for the commands to complete
-            while not finished():
-                # Handle timeout
-                if time() > timeout:
-                    raise Vxi11Exception(15, "wait")
+        try:
+            return self.ask('SING;*OPC?')
+        except Vxi11Exception:
+            self.scope.clear()
+            self.issue_stop()
+            raise Vxi11Exception(15, 'wait')
 
     # General accessor methods
 
@@ -536,12 +524,11 @@ class RTMConnection(ScopeConnection):
         # Return dict
         return result
 
-    def stamp_acquisition(self, channels, single=False, busy=True):
+    def stamp_acquisition(self, channels, single=False):
         """Return the time stamp of an acquisition
         along with the values as a string.
         """
-        args = channels, single, busy
-        return super(RTMConnection, self).stamp_acquisition(*args)
+        return super(RTMConnection, self).stamp_acquisition(channels, single)
 
 
 # RTO scope connection class
