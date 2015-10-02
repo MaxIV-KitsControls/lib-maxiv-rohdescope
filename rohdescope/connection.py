@@ -73,7 +73,7 @@ class ScopeConnection(object):
 
     def configure(self):
         """Configure the scope if it requires some custom settings."""
-        self.clear_buffer()
+        self.clear()
 
     # Operation methods
 
@@ -146,10 +146,9 @@ class ScopeConnection(object):
             return self.ask(command)
         return self.write(command) or "Write command OK."
 
-    def clear_buffer(self):
-        """Clear the error buffer."""
+    def clear(self):
+        """Clear the status."""
         cmd = '*CLS'
-        self.scope.clear()
         self.write(cmd)
 
     # Acquisition
@@ -478,6 +477,13 @@ class RTMConnection(ScopeConnection):
 
     # Acquisition settings
 
+    def configure(self):
+        """Configure the scope to use binary readout."""
+        # Clear the status
+        super(RTMConnection, self).configure()
+        # Set binary readout
+        self.set_binary_readout()
+
     def get_acquisition_count(self):
         """Return the number of aquisition for single mode."""
         cmd = " ACQuire:NSINgle:COUNt?"
@@ -567,6 +573,13 @@ class RTOConnection(ScopeConnection):
         return status_dict.get(code, default_code)
 
     # Fast acquisition
+
+    def clear(self):
+        """Clear the communication and the status."""
+        # Clear communication
+        self.scope.clear()
+        # Clear status
+        super(RTOConnection, self).clear()
 
     def configure(self):
         """Configure the scope for fast acquisition mode."""
