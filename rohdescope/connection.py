@@ -65,7 +65,7 @@ class ScopeConnection(object):
     def get_firmware_version(self, scope_clear=False):
         """Get the firmware version."""
         if not self.scope:
-            raise RuntimeError("Vxi11 Instrument not instanciated.")
+            raise RuntimeError("vxi11 Instrument not instanciated.")
         with self.lock:
             if scope_clear:
                 self.scope.clear()
@@ -150,6 +150,8 @@ class ScopeConnection(object):
 
     def clear(self, scope_clear=False):
         """Clear the status and optionally the communication."""
+        if not self.connected:
+            raise RuntimeError("not connected to the scope")
         # Clear communication
         if scope_clear:
             with self.lock:
@@ -513,6 +515,8 @@ class RTMConnection(ScopeConnection):
         """Return a string containing the waveform values
         for the given channels.
         """
+        if not self.connected:
+            raise RuntimeError("not connected to the scope")
         result = []
         # Loop over channels
         for channel in channels:
@@ -649,6 +653,8 @@ class RTOConnection(ScopeConnection):
         """Return a string containing the waveform values
         for the given channels.
         """
+        if not self.connected:
+            raise RuntimeError("not connected to the scope")
         if not channels:
             return ""
         with self.lock:
