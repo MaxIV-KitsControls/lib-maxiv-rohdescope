@@ -62,11 +62,13 @@ class ScopeConnection(object):
         """Property to indicate whether the device is connected."""
         return self.scope and self.firmware_version
 
-    def get_firmware_version(self):
+    def get_firmware_version(self, scope_clear=False):
         """Get the firmware version."""
         if not self.scope:
             raise RuntimeError("Vxi11 Instrument not instanciated.")
         with self.lock:
+            if scope_clear:
+                self.scope.clear()
             idn = self.scope.ask("*IDN?")
         company, line, model, fw = idn.split(",")
         return tuple(int(part) for part in fw.split("."))
@@ -146,8 +148,13 @@ class ScopeConnection(object):
             return self.ask(command)
         return self.write(command) or "Write command OK."
 
-    def clear(self):
-        """Clear the status."""
+    def clear(self, scope_clear=False):
+        """Clear the status and optionally the communication."""
+        # Clear communication
+        if scope_clear:
+            with self.lock:
+                self.scope.clear()
+        # Clear status
         cmd = '*CLS'
         self.write(cmd)
 
@@ -241,7 +248,8 @@ class ScopeConnection(object):
         try:
             return self.ask('SING;*OPC?')
         except Vxi11Exception:
-            self.scope.clear()
+            with self.lock:
+                self.scope.clear()
             self.issue_stop()
             raise Vxi11Exception(15, 'wait')
 
@@ -574,12 +582,21 @@ class RTOConnection(ScopeConnection):
 
     # Fast acquisition
 
-    def clear(self):
-        """Clear the communication and the status."""
-        # Clear communication
-        self.scope.clear()
-        # Clear status
-        super(RTOConnection, self).clear()
+    def get_firmware_version(self, scope_clear=True):
+        """Get the firmware version.
+
+        The `scope_clear` argument defaults to True since pending operation
+        (such as waiting for a trigger) can prevent the execution of `*IDN?`.
+        """
+        return super(RTOConnection, self).get_firmware_version(scope_clear)
+
+    def clear(self, scope_clear=True):
+        """Clear the communication and the status.
+
+        The `scope_clear` argument defaults to True since pending operation
+        (such as waiting for a trigger) can prevent the execution of commands.
+        """
+        super(RTOConnection, self).clear(scope_clear)
 
     def configure(self):
         """Configure the scope for fast acquisition mode."""
