@@ -23,4 +23,6 @@ setup(name="python-rohdescope",
       url="http://www.maxlab.lu.se",
       long_description=safe_read("README.md"),
       packages=["rohdescope"],
+      install_requires=['python-vxi11>=0.8.1'],
+      dependency_links=['git+https://github.com/MaxIV-KitsControls/python-vxi11#egg=python-vxi11']
       )
